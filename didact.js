@@ -1,4 +1,4 @@
-const createElement = (type, props, ...children) => {
+function createElement(type, props, ...children) {
   return {
     type,
     props: {
@@ -10,7 +10,7 @@ const createElement = (type, props, ...children) => {
   }
 }
 
-const createTextElement = (text) => {
+function createTextElement(text) {
   return {
     type: "TEXT_ELEMENT",
     props: {
@@ -20,7 +20,11 @@ const createTextElement = (text) => {
   }
 }
 
-const render = (element, container) => {
+// In reality React doesn't create empty arrays when there are no children
+// and doesn't wrap plain text into special TEXT_ELEMENT
+// but we will do that to sacrifice performance for the sake of simplicity
+
+function render(element, container) {
   const dom =
     element.type === "TEXT_ELEMENT"
       ? document.createTextNode("")
@@ -31,29 +35,31 @@ const render = (element, container) => {
     dom[prop] = element.props[prop]
   }
 
-  console.log(dom)
-
   container.appendChild(dom)
 
   element.props.children.forEach((child) => render(child, dom))
 }
 
-// In reality React doesn't create empty arrays when there are no children
-// and doesn't wrap plain text into special TEXT_ELEMENT
-// but we will do that to sacrifice performance for the sake of simplicity
+let nextUnitOfWork = null
+
+function workLoop(deadline) {
+  let shouldYield = false
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+    shouldYield = deadline.timeRemaining() < 1
+  }
+
+  // this function is similar to setTimeout, but instead of us telling the browser
+  // when to run, the browser will run the callback when the main thread is idle
+  // React doesn't use this API anymore, instead it uses the scheduler package
+  requestIdleCallback(workLoop)
+}
+
+function performUnitOfWork(nextUnitOfWork) {
+
+}
 
 const Didact = {
   createElement,
   render,
 }
-
-/** @jsx Didact.createElement */
-const element = (
-  <div id="foo">
-    <h1>Welcome to my own react</h1>
-    <p style="line-height: 3; background-color: salmon">Some styled text</p>
-  </div>
-)
-
-const container = document.getElementById("root")
-Didact.render(element, container)
