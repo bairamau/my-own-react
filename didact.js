@@ -196,10 +196,46 @@ function performUnitOfWork(fiber) {
   }
 }
 
+let wipFiber = null
+let hookIndex = null
+
 function updateFunctionComponent(fiber) {
+  wipFiber = fiber
+  hookIndex = 0
+  wipFiber.hooks = []
   // run the function component to get the children
+  // setCount will also be called from here
   const children = [fiber.type(fiber.props)]
   reconcileChildren(fiber, children)
+}
+
+function useState(initial) {
+  const oldHook = wipFiber.alternate?.hooks?.[hookIndex]
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  }
+
+  const actions = oldHook ? oldHook.queue : []
+  actions.forEach((action) => {
+    hook.state = action(hook.state)
+  })
+
+  const setState = (action) => {
+    hook.queue.push(action)
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    }
+    nextUnitOfWork = wipRoot
+    deleteions = []
+  }
+
+  wipFiber.hooks.push(hook)
+  hookIndex++
+
+  return [hook.state, setState]
 }
 
 function updateHostComponent(fiber) {
@@ -278,6 +314,7 @@ function reconcileChildren(wipFiber, elements) {
 }
 
 const Didact = {
+  useState,
   createElement,
   render,
 }

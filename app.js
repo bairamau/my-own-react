@@ -1,6 +1,7 @@
 /** @jsx Didact.createElement */
 function App(props) {
-  return <h1>Hi {props.name}</h1>
+  const [count, setCount] = Didact.useState(1)
+  return <h1 onClick={() => setCount((c) => c + 1)}>Count {count}</h1>
 }
 const element = <App name="foo" />
 
