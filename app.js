@@ -1,16 +1,8 @@
 /** @jsx Didact.createElement */
-const element = (
-  <div id="foo">
-    <h1
-      onClick={() => {
-        console.log("aint no way")
-      }}
-    >
-      Welcome to my own react
-    </h1>
-    <p style="line-height: 3; background-color: salmon">Some styled text</p>
-  </div>
-)
+function App(props) {
+  return <h1>Hi {props.name}</h1>
+}
+const element = <App name="foo" />
 
 const container = document.getElementById("root")
 Didact.render(element, container)

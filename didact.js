@@ -91,14 +91,19 @@ function commitWork(fiber) {
     return
   }
 
-  const domParent = fiber.parent.dom
+  let domParentFiber = fiber.parent
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent
+  }
+  const domParent = domParentFiber.dom
+
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     console.log("placement")
     domParent.appendChild(fiber.dom)
   }
-  if (fiber.effectTag === "DELETION" && fiber.dom != null) {
-    console.log("deleteion")
-    domParent.removeChild(fiber.dom)
+  if (fiber.effectTag === "DELETION") {
+    console.log("deletion")
+    commitDeletion(fiber, domParent)
   }
   if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     console.log("update")
@@ -106,6 +111,14 @@ function commitWork(fiber) {
   }
   commitWork(fiber.child)
   commitWork(fiber.sibling)
+}
+
+function commitDeleteion(fiber, domParent) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom)
+  } else {
+    commitDeleteion(fiber.child, domParent)
+  }
 }
 
 function render(element, container) {
@@ -157,12 +170,13 @@ requestIdleCallback(workLoop)
 
 function performUnitOfWork(fiber) {
   console.log("perform unit of work")
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber)
-  }
+  const isFunctionComponent = fiber.type instanceof Function
 
-  const elements = fiber.props.children
-  reconcileChildren(fiber, elements)
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber)
+  } else {
+    updateHostComponent(fiber)
+  }
 
   // search for the next unit of work
   // first try child
@@ -180,6 +194,21 @@ function performUnitOfWork(fiber) {
 
     nextFiber = nextFiber.parent
   }
+}
+
+function updateFunctionComponent(fiber) {
+  // run the function component to get the children
+  const children = [fiber.type(fiber.props)]
+  reconcileChildren(fiber, children)
+}
+
+function updateHostComponent(fiber) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber)
+  }
+
+  const elements = fiber.props.children
+  reconcileChildren(fiber, elements)
 }
 
 function reconcileChildren(wipFiber, elements) {
